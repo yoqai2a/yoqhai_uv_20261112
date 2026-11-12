@@ -1,0 +1,69 @@
+name: Cron_UV
+
+on:
+  schedule:
+    - cron: "20 18 * * *"   # todos los dias 18:30 UTC
+    - cron: "30 18 * * *"   # todos los dias 18:30 UTC
+    - cron: "45 18 * * *"   # todos los dias 18:30 UTC
+  workflow_dispatch:
+    inputs:
+      fecha:
+        description: "Fecha YYYYMMDD (vacio = segun hora UTC y __Configuracion_UV.toml)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # necesario para guardar el CSV en el repositorio
+
+concurrency:
+  group: cron-uv            # evita dos ejecuciones simultaneas haciendo push
+  cancel-in-progress: false
+
+jobs:
+  uv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install numpy pygrib
+
+      - name: Calcular fecha
+        env:
+          FECHA_MANUAL: ${{ github.event.inputs.fecha }}
+        run: |
+          if [ -n "$FECHA_MANUAL" ]; then
+            [[ "$FECHA_MANUAL" =~ ^[0-9]{8}$ ]] || { echo "::error::Fecha invalida, usa YYYYMMDD"; exit 1; }
+            FECHA="$FECHA_MANUAL"
+          else
+            FECHA=$(python _0_UV_index/_Descargar_UV.py --fecha)
+          fi
+          echo "Fecha a procesar: $FECHA"
+          echo "FECHA=$FECHA" >> "$GITHUB_ENV"
+
+      - name: Ejecutar Y0Qa1 (descarga y luego genera CSV/JSON)
+        run: python Y0Qa1.py "$FECHA"
+
+      - name: Guardar CSV/JSON como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: ___UV_${{ env.FECHA }}
+          path: |
+            ___Data/___UV/___UV_${{ env.FECHA }}/*.csv
+            ___Data/___UV/___UV_${{ env.FECHA }}/*.json
+          retention-days: 7
+
+      - name: Guardar CSV/JSON en el repositorio (___Data/___UV/)
+        run: |
+          D="___Data/___UV/___UV_${FECHA}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$D/UV_${FECHA}.csv" "$D/UV_${FECHA}_max_dia.csv" "$D/UV_${FECHA}_max_dia.json"
+          git diff --staged --quiet || git commit -m "UV ${FECHA}: CSV generado"
+          git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          git push
