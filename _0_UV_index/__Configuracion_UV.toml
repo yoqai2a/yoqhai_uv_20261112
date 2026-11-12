@@ -1,0 +1,48 @@
+# Configuracion - Radiacion UV (NOMADS/NCEP)
+# Usada por Descargar_UV.py y Generar_CSV_UV.py
+
+[fecha]
+# Fecha del directorio uvi.YYYYMMDD, como texto. "AUTO" = segun la hora UTC (ver abajo).
+# Tambien puede ser una fecha fija, por ejemplo "20261104".
+fecha = "AUTO"
+# Con "AUTO": antes de esta hora UTC se usa la fecha de AYER; desde esta hora, la de HOY.
+hora_cambio_utc = "18:30"
+
+[descarga]
+ciclo = "t12z"                    # t00z, t06z, t12z, t18z
+productos = ["uv", "uvucs"]
+hora_inicio = 1                   # grbf01
+hora_fin = 120                    # grbf120
+url_base = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/uvi/prod"
+destino = "../___Data/___UV/___UV_{FECHA}"   # relativo a ESTA carpeta; {FECHA} = fecha
+reintentos = 3
+espera = 5                        # segundos entre reintentos
+hilos = 16
+rondas_extra = 3                 # rondas adicionales solo con los archivos que fallaron
+
+[extraccion]
+modo = "punto"                    # "punto" = un solo lugar | "zona" = caja lat/lon
+procesos = 0                      # procesos en paralelo al leer los GRIB2; 0 = automatico (nucleos, max 8)
+solo_con_sol = false              # true omite filas nocturnas (uv y uvucs = 0)
+factor_uvi = 40.0                 # valor GRIB (W/m2 eritemico) x 40 = indice UV (1 UVI = 25 mW/m2)
+umbral_transmision = 0.1          # transmision solo si el UVI despejado supera este valor
+
+# --- modo "punto" (la grilla es de 0.5 x 0.5 grados) ---
+punto_nombre = "Punta Arenas"
+punto_lat = -53.0
+punto_lon = -70.83                # longitudes entre -180 y 180
+metodo = "bilineal"               # "bilineal" (interpola 4 nodos) | "vecino" (nodo mas cercano)
+
+# --- modo "zona" (OJO: la grilla global completa genera un CSV gigante) ---
+lat_min = -56.0
+lat_max = -17.0
+lon_min = -76.0
+lon_max = -66.0
+
+[csv]
+archivo = "UV_{FECHA}.csv"        # se guarda dentro de la carpeta de destino
+archivo_max_dia = "UV_{FECHA}_max_dia.csv"
+archivo_max_dia_json = "UV_{FECHA}_max_dia.json"
+agrupar_por = "bloque_24h"              # "bloque_24h" (dia1 = f01-f24, ...) | "dia_local" (calendario)
+zona_horaria = "America/Punta_Arenas"   # para agrupar por dia local y dar la hora local
+separador = ","
