@@ -1,0 +1,11 @@
+fecha_corrida,dia,tipo,fecha_local,hora_local,hora_utc,hora_pronostico,punto,latitud,longitud,uv_bruto,uvucs_bruto,uvi_despejado,uvi_nubosidad,transmision,n_horas_del_dia
+20261112,1,maximo_con_nubosidad,2026-11-12,14:00,2026-11-12 17:00,5,Punta Arenas,-53.00,-70.83,0.1712,0.1872,7.5,6.8,0.914,24
+20261112,1,maximo_cielo_despejado,2026-11-12,14:00,2026-11-12 17:00,5,Punta Arenas,-53.00,-70.83,0.1712,0.1872,7.5,6.8,0.914,24
+20261112,2,maximo_con_nubosidad,2026-11-13,12:00,2026-11-13 15:00,27,Punta Arenas,-53.00,-70.83,0.1149,0.1434,5.7,4.6,0.801,24
+20261112,2,maximo_cielo_despejado,2026-11-13,14:00,2026-11-13 17:00,29,Punta Arenas,-53.00,-70.83,0.0345,0.1708,6.8,1.4,0.202,24
+20261112,3,maximo_con_nubosidad,2026-11-14,13:00,2026-11-14 16:00,52,Punta Arenas,-53.00,-70.83,0.1486,0.1846,7.4,5.9,0.805,24
+20261112,3,maximo_cielo_despejado,2026-11-14,14:00,2026-11-14 17:00,53,Punta Arenas,-53.00,-70.83,0.1348,0.1898,7.6,5.4,0.710,24
+20261112,4,maximo_con_nubosidad,2026-11-15,13:00,2026-11-15 16:00,76,Punta Arenas,-53.00,-70.83,0.1465,0.1798,7.2,5.9,0.815,24
+20261112,4,maximo_cielo_despejado,2026-11-15,14:00,2026-11-15 17:00,77,Punta Arenas,-53.00,-70.83,0.1301,0.1849,7.4,5.2,0.703,24
+20261112,5,maximo_con_nubosidad,2026-11-16,12:00,2026-11-16 15:00,99,Punta Arenas,-53.00,-70.83,0.1412,0.1482,5.9,5.6,0.953,24
+20261112,5,maximo_cielo_despejado,2026-11-16,14:00,2026-11-16 17:00,101,Punta Arenas,-53.00,-70.83,0.0925,0.1787,7.1,3.7,0.518,24
