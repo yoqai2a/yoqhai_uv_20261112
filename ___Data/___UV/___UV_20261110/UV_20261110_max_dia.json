@@ -1,0 +1,83 @@
+{
+  "20261110": {
+    "Punta Arenas (-53.00, -70.83)": {
+      "punto": "Punta Arenas",
+      "latitud": -53.0,
+      "longitud": -70.83,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-10",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-10 17:00",
+          "uvi_con_nubosidad": 6.2,
+          "uv_bruto": 0.1543
+        },
+        "dia2": {
+          "fecha_local": "2026-11-11",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-11 17:00",
+          "uvi_con_nubosidad": 6.7,
+          "uv_bruto": 0.1681
+        },
+        "dia3": {
+          "fecha_local": "2026-11-12",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-12 17:00",
+          "uvi_con_nubosidad": 7.1,
+          "uv_bruto": 0.1783
+        },
+        "dia4": {
+          "fecha_local": "2026-11-13",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-13 17:00",
+          "uvi_con_nubosidad": 5.0,
+          "uv_bruto": 0.1246
+        },
+        "dia5": {
+          "fecha_local": "2026-11-14",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-14 17:00",
+          "uvi_con_nubosidad": 7.3,
+          "uv_bruto": 0.1831
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-10",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-10 17:00",
+          "uvi_despejado": 6.9,
+          "uvucs_bruto": 0.1729
+        },
+        "dia2": {
+          "fecha_local": "2026-11-11",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-11 17:00",
+          "uvi_despejado": 6.8,
+          "uvucs_bruto": 0.1704
+        },
+        "dia3": {
+          "fecha_local": "2026-11-12",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-12 17:00",
+          "uvi_despejado": 7.5,
+          "uvucs_bruto": 0.1878
+        },
+        "dia4": {
+          "fecha_local": "2026-11-13",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-13 17:00",
+          "uvi_despejado": 6.8,
+          "uvucs_bruto": 0.1708
+        },
+        "dia5": {
+          "fecha_local": "2026-11-14",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-14 17:00",
+          "uvi_despejado": 7.6,
+          "uvucs_bruto": 0.1893
+        }
+      }
+    }
+  }
+}
