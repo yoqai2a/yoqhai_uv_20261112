@@ -2,9 +2,9 @@ name: Cron_UV
 
 on:
   schedule:
-    - cron: "20 18 * * *"   # todos los dias 18:30 UTC
+    - cron: "20 18 * * *"   # todos los dias 18:20 UTC
     - cron: "30 18 * * *"   # todos los dias 18:30 UTC
-    - cron: "45 18 * * *"   # todos los dias 18:30 UTC
+    - cron: "45 18 * * *"   # todos los dias 18:45 UTC
   workflow_dispatch:
     inputs:
       fecha:
@@ -31,7 +31,7 @@ jobs:
           python-version: "3.12"
 
       - name: Instalar dependencias
-        run: pip install numpy pygrib
+        run: pip install numpy pygrib openpyxl
 
       - name: Calcular fecha
         env:
@@ -46,7 +46,7 @@ jobs:
           echo "Fecha a procesar: $FECHA"
           echo "FECHA=$FECHA" >> "$GITHUB_ENV"
 
-      - name: Ejecutar Y0Qa1 (descarga y luego genera CSV/JSON)
+      - name: Ejecutar Y0Qa1 (descarga y luego genera CSV/JSON e historico)
         run: python Y0Qa1.py "$FECHA"
 
       - name: Guardar CSV/JSON como artefacto
@@ -56,14 +56,17 @@ jobs:
           path: |
             ___Data/___UV/___UV_${{ env.FECHA }}/*.csv
             ___Data/___UV/___UV_${{ env.FECHA }}/*.json
+            ___Data/___UV/Historico_UV.xlsx
           retention-days: 7
 
-      - name: Guardar CSV/JSON en el repositorio (___Data/___UV/)
+      - name: Guardar CSV/JSON e historico en el repositorio (___Data/___UV/)
         run: |
           D="___Data/___UV/___UV_${FECHA}"
+          H="___Data/___UV/Historico_UV.xlsx"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$D/UV_${FECHA}.csv" "$D/UV_${FECHA}_max_dia.csv" "$D/UV_${FECHA}_max_dia.json"
+          if [ -f "$H" ]; then git add "$H"; fi
           git diff --staged --quiet || git commit -m "UV ${FECHA}: CSV generado"
           git pull --rebase origin "${GITHUB_REF_NAME}" || true
           git push
