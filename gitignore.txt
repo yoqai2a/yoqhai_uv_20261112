@@ -1,0 +1,9 @@
+# Los GRIB2 se descargan en cada ejecucion (~55 MB por dia): no se suben al repositorio
+*.grib2
+*.grib2.part
+
+__pycache__/
+*.pyc
+
+# Secretos de Streamlit (token de GitHub): jamas se suben
+.streamlit/secrets.toml

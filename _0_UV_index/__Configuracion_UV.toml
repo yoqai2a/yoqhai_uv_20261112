@@ -21,23 +21,42 @@ hilos = 16
 rondas_extra = 3                 # rondas adicionales solo con los archivos que fallaron
 
 [extraccion]
-modo = "punto"                    # "punto" = un solo lugar | "zona" = caja lat/lon
+modo = "puntos"                   # "puntos" = varios lugares (tabla [puntos]) | "punto" = uno solo | "zona" = caja lat/lon
 procesos = 0                      # procesos en paralelo al leer los GRIB2; 0 = automatico (nucleos, max 8)
 solo_con_sol = false              # true omite filas nocturnas (uv y uvucs = 0)
 factor_uvi = 40.0                 # valor GRIB (W/m2 eritemico) x 40 = indice UV (1 UVI = 25 mW/m2)
 umbral_transmision = 0.1          # transmision solo si el UVI despejado supera este valor
 
-# --- modo "punto" (la grilla es de 0.5 x 0.5 grados) ---
+# --- modo "punto" (un solo lugar; la grilla de NOAA es de 0.25 x 0.25 grados) ---
 punto_nombre = "Punta Arenas"
 punto_lat = -53.0
 punto_lon = -70.83                # longitudes entre -180 y 180
-metodo = "bilineal"               # "bilineal" (interpola 4 nodos) | "vecino" (nodo mas cercano)
+metodo = "bilineal"               # "bilineal" (interpola 4 nodos) | "vecino" (nodo mas cercano); vale para "punto" y "puntos"
 
-# --- modo "zona" (OJO: la grilla global completa genera un CSV gigante) ---
+# --- modo "zona" (OJO: con grilla de 0.25 grados, una caja grande genera cientos de miles de filas) ---
 lat_min = -56.0
 lat_max = -17.0
 lon_min = -76.0
 lon_max = -66.0
+
+[puntos]
+# Estaciones, de NORTE a SUR (el visor muestra un boton por cada una, en este orden).
+# "predeterminado" = la que se abre primero en el visor.
+predeterminado = "SCCI"
+SCHR = {lat = -47.24, lon = -72.59}
+SCNT = {lat = -51.72, lon = -72.50}
+SCCI = {lat = -53.00, lon = -70.85}
+SCFM = {lat = -53.07, lon = -70.08}
+SCGZ = {lat = -54.93, lon = -67.64}
+SCRM = {lat = -62.17, lon = -58.91}
+
+[historico]
+# Archivo maestro (Excel): una hoja por estacion, una fila por fecha de ciclo, con el maximo
+# diario del indice UV (cielo despejado y con nubosidad) de los dias 0 a 5.
+activo = true
+archivo = "../___Data/___UV/Historico_UV.xlsx"   # relativo a ESTA carpeta
+desde = "2026-01-01"                             # primera fila del calendario
+hasta = "2027-12-31"                             # ultima fila (si llega una fecha posterior, se extiende solo)
 
 [csv]
 archivo = "UV_{FECHA}.csv"        # se guarda dentro de la carpeta de destino

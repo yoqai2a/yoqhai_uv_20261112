@@ -12,6 +12,7 @@ Lee, desde Y0Qa1/___Data/___UV/___UV_YYYYMMDD/:
 """
 import hmac
 import json
+import re
 import time
 import tomllib
 import urllib.error
@@ -30,6 +31,7 @@ RAIZ_DATOS = Path(__file__).resolve().parent.parent / "___Data" / "___UV"
 ZONA_DEFECTO = "America/Punta_Arenas"
 NOMBRE_TAB_DL = "YoQa1 °.° uv °.° dl"          # nombre de la ultima pestana (ejecutor manual)
 API_GITHUB = "https://api.github.com"
+URL_NOMADS = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/uvi/prod/"
 ESPERA_ENTRE_EJECUCIONES = 60                  # segundos minimos entre dos disparos desde el visor
 
 # Categorias OMS del indice UV: (nombre, desde, hasta, color)
@@ -144,14 +146,21 @@ def etiqueta_ciclo(f, f_actual):
     return f"{nombre} ({f[:4]}-{f[4:6]}-{f[6:]})"
 
 
-def maximos_por_fecha(raiz, f, lat, lon):
+def mascara_punto(df, p):
+    """Filas del punto p: por nombre si lo tiene (SCCI...), si no por coordenadas."""
+    if p["punto"]:
+        return df["punto"] == p["punto"]
+    return (df["latitud"] == p["latitud"]) & (df["longitud"] == p["longitud"])
+
+
+def maximos_por_fecha(raiz, f, p):
     """Maximos diarios de un ciclo, indexados por FECHA calendario (inicio del bloque de 24 h).
     Devuelve (serie_despejado, serie_nubosidad) o None si el ciclo no tiene archivo de maximos."""
     ruta = raiz / f"___UV_{f}" / f"UV_{f}_max_dia.csv"
     if not ruta.exists():
         return None
     df = leer_csv(str(ruta), ruta.stat().st_mtime)
-    df = df[(df["latitud"] == lat) & (df["longitud"] == lon)]
+    df = df[mascara_punto(df, p)]
     inicio = pd.to_datetime(f, format="%Y%m%d")
     df = df.assign(fecha=inicio + pd.to_timedelta(df["dia"] - 1, unit="D"))
     desp = df[df["tipo"] == "maximo_cielo_despejado"].set_index("fecha")["uvi_despejado"]
@@ -207,19 +216,77 @@ def explicar_error(codigo, datos):
     return f"Error {codigo}: {detalle}"
 
 
-def fecha_automatica():
-    """Fecha que usaria el modo AUTO (misma regla que _Descargar_UV.py) y la hora de cambio UTC."""
-    hora = "18:30"
+def leer_config_uv():
+    """Parametros de __Configuracion_UV.toml que necesita el visor (con valores por defecto)."""
+    cfg = {"hora_cambio": "18:30", "ciclo": "t12z", "esperados": 120, "punto_predeterminado": "SCCI"}
     try:
         ruta = Path(__file__).resolve().parent.parent / "_0_UV_index" / "__Configuracion_UV.toml"
         with open(ruta, "rb") as f:
-            hora = tomllib.load(f)["fecha"].get("hora_cambio_utc", hora)
+            t = tomllib.load(f)
+        cfg["hora_cambio"] = t.get("fecha", {}).get("hora_cambio_utc", cfg["hora_cambio"])
+        d = t.get("descarga", {})
+        cfg["ciclo"] = d.get("ciclo", cfg["ciclo"])
+        cfg["esperados"] = d.get("hora_fin", 120) - d.get("hora_inicio", 1) + 1
+        cfg["punto_predeterminado"] = t.get("puntos", {}).get("predeterminado", cfg["punto_predeterminado"])
     except Exception:
         pass
+    return cfg
+
+
+def leer_web(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Y0Qa1-visor-uv"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def consultar_nomads(fechas, ciclo, esperados):
+    """Estado en NOMADS de cada fecha pedida (tupla YYYYMMDD): si existe la carpeta, cuantos archivos
+    uv / uvucs hay, si esta completa y cuando se publico (UTC)."""
+    res = {}
+    for f in fechas:
+        try:
+            html = leer_web(f"{URL_NOMADS}uvi.{f}/")
+        except urllib.error.HTTPError as e:
+            res[f] = {"existe": False, "uv": 0, "uvucs": 0, "completa": False, "publicada": "—",
+                      "error": None if e.code == 404 else f"HTTP {e.code}"}
+            continue
+        n_uv = len(set(re.findall(rf"uv\.{ciclo}\.grbf(\d{{2,3}})\.grib2", html)))
+        n_ucs = len(set(re.findall(rf"uvucs\.{ciclo}\.grbf(\d{{2,3}})\.grib2", html)))
+        # publicacion = ultima modificacion del ultimo archivo horario (listado en UTC)
+        m = re.search(rf"uv\.{ciclo}\.grbf{esperados}\.grib2(?:</a>)?\s+(\d{{2}}-[A-Za-z]{{3}}-\d{{4}} \d{{2}}:\d{{2}})", html)
+        res[f] = {"existe": True, "uv": n_uv, "uvucs": n_ucs, "publicada": m.group(1) if m else "—",
+                  "completa": n_uv >= esperados and n_ucs >= esperados, "error": None}
+    return res
+
+
+def fechas_hoy_ayer():
+    """[hoy, ayer] en UTC (formato YYYYMMDD): las unicas fechas que ofrece el ejecutor."""
+    hoy = datetime.now(timezone.utc).date()
+    return [hoy.strftime("%Y%m%d"), (hoy - timedelta(days=1)).strftime("%Y%m%d")]
+
+
+def indice_por_reloj(hora_cambio):
+    """0 (hoy) si ya paso la hora de cambio UTC, 1 (ayer) si no: igual que el modo AUTO."""
     ahora = datetime.now(timezone.utc)
-    hh, mm = (int(x) for x in hora.split(":"))
-    corte = ahora.replace(hour=hh, minute=mm, second=0, microsecond=0)
-    return (ahora if ahora >= corte else ahora - timedelta(days=1)).strftime("%Y%m%d"), hora
+    hh, mm = (int(x) for x in hora_cambio.split(":"))
+    return 0 if ahora >= ahora.replace(hour=hh, minute=mm, second=0, microsecond=0) else 1
+
+
+def texto_estado(e, total):
+    if not e:
+        return ""
+    if e.get("error"):
+        return f"⚠️ no se pudo consultar ({e['error']})"
+    if not e["existe"]:
+        return "❌ aún no publicada"
+    if e["completa"]:
+        return f"✅ completa ({total}/{total}, publicada {e['publicada']} UTC)"
+    return f"⚠️ incompleta ({e['uv'] + e['uvucs']}/{total})"
+
+
+def iso(f):
+    return f"{f[:4]}-{f[4:6]}-{f[6:]}"
 
 
 ESTADOS = {"queued": "⏳ en cola", "in_progress": "🔄 en curso", "waiting": "⏳ esperando",
@@ -338,7 +405,21 @@ puntos = (horario[["punto", "latitud", "longitud"]].drop_duplicates()
           .sort_values(["latitud", "longitud"], ascending=[False, True]).reset_index(drop=True))
 puntos["etiqueta"] = puntos.apply(etiqueta_punto, axis=1)
 with st.sidebar:
-    if len(puntos) > 1:
+    if 1 < len(puntos) <= 12:
+        # un boton por estacion, de norte a sur; se abre la predeterminada de la configuracion
+        etiquetas = list(puntos["etiqueta"])
+        if st.session_state.get("punto_sel") not in etiquetas:
+            pred = leer_config_uv()["punto_predeterminado"]
+            st.session_state["punto_sel"] = next(
+                (et for et, n in zip(etiquetas, puntos["punto"]) if n == pred), etiquetas[0])
+        st.markdown("**Punto** (norte → sur)")
+        for i, r in puntos.iterrows():
+            boton(st, r["punto"] or r["etiqueta"], key=f"btn_pto_{i}",
+                  type="primary" if r["etiqueta"] == st.session_state["punto_sel"] else "secondary",
+                  help=f"lat {r['latitud']:.2f} · lon {r['longitud']:.2f}",
+                  on_click=st.session_state.update, kwargs={"punto_sel": r["etiqueta"]})
+        sel = st.session_state["punto_sel"]
+    elif len(puntos) > 12:
         sel = st.selectbox(f"Punto ({len(puntos)} disponibles)", puntos["etiqueta"])
     else:
         sel = puntos["etiqueta"].iloc[0]
@@ -346,7 +427,7 @@ with st.sidebar:
 p = puntos[puntos["etiqueta"] == sel].iloc[0]
 
 def de_este_punto(df):
-    return df[(df["latitud"] == p["latitud"]) & (df["longitud"] == p["longitud"])].copy()
+    return df[mascara_punto(df, p)].copy()
 
 h = de_este_punto(horario)
 h["hora"] = a_hora(h["fecha_valida_utc"], zona)
@@ -496,7 +577,7 @@ with tab_comp:
                "ciclos; los ciclos más antiguos cubren menos días futuros, por eso les faltan "
                "las últimas fechas (—).")
     ciclos = fechas[fechas.index(fecha):][:5]      # fechas va de la mas reciente a la mas antigua
-    datos = {f: maximos_por_fecha(raiz, f, p["latitud"], p["longitud"]) for f in ciclos}
+    datos = {f: maximos_por_fecha(raiz, f, p) for f in ciclos}
     base = datos.get(fecha)
     if base is None or base[0].empty:
         st.info("El ciclo seleccionado no tiene archivo de máximos por día.")
@@ -527,6 +608,7 @@ with tab_dl:
     st.caption("Lanza a mano el workflow que descarga los GRIB2, genera los CSV/JSON y los sube al "
                "repositorio (el mismo que corre solo todos los días).")
     cfg = secretos_github()
+    cfg_uv = leer_config_uv()
 
     # --- conexion: desde secretos, o a mano si no hay
     if cfg.get("token") and cfg.get("repo"):
@@ -551,16 +633,34 @@ with tab_dl:
         if clave and not autorizado:
             st.error("Clave incorrecta.")
 
-    # --- fecha
-    auto, hora_cambio = fecha_automatica()
-    modo = st.radio("Fecha a procesar", ["Automática", "Fecha específica"], horizontal=True)
-    if modo == "Automática":
-        fecha_sel = ""
-        st.caption(f"Se procesará **{auto[:4]}-{auto[4:6]}-{auto[6:]}**: antes de las {hora_cambio} UTC "
-                   "toma la fecha de ayer; desde esa hora, la de hoy.")
-    else:
-        elegida = st.date_input("Fecha", value=datetime.strptime(auto, "%Y%m%d").date())
-        fecha_sel = elegida.strftime("%Y%m%d")
+    # --- fecha a procesar: solo hoy y ayer (UTC)
+    opciones = fechas_hoy_ayer()
+    total = 2 * cfg_uv["esperados"]
+    st.markdown("**Fecha a procesar** (solo hoy y ayer, en UTC)")
+    if boton(st, "🔍 Consultar NOMADS", key="btn_dl_nomads"):
+        consultar_nomads.clear()
+        try:
+            st.session_state["dl_nomads"] = {
+                "fechas": tuple(opciones), "error": None,
+                "estado": consultar_nomads(tuple(opciones), cfg_uv["ciclo"], cfg_uv["esperados"])}
+        except Exception as e:
+            st.session_state["dl_nomads"] = {"fechas": tuple(opciones), "estado": {},
+                                             "error": f"{type(e).__name__}: {e}"}
+    nm = st.session_state.get("dl_nomads")
+    estado = nm["estado"] if nm and nm["fechas"] == tuple(opciones) and not nm["error"] else {}
+    if nm and nm["error"]:
+        st.error(f"No se pudo consultar NOMADS: {nm['error']}")
+    nombre_dia = {opciones[0]: "Hoy", opciones[1]: "Ayer"}
+    fecha_sel = st.radio(
+        "Fecha", opciones, index=indice_por_reloj(cfg_uv["hora_cambio"]), key="dl_fecha",
+        label_visibility="collapsed",
+        format_func=lambda f: f"{nombre_dia[f]} · {iso(f)}   {texto_estado(estado.get(f), total)}".rstrip())
+    est_sel = estado.get(fecha_sel)
+    if not estado:
+        st.caption("Pulsa «Consultar NOMADS» para ver si la fecha ya está publicada.")
+    elif est_sel and not est_sel["completa"]:
+        st.warning("NOMADS aún no tiene esta fecha completa: la ejecución probablemente falle. "
+                   "Puedes lanzarla igual.")
 
     # --- botones
     faltan_datos = not (token and repo and workflow and rama)
@@ -577,6 +677,16 @@ with tab_dl:
     ruta_runs = f"/repos/{repo}/actions/workflows/{workflow}/runs?per_page=8"
 
     if ejecutar and autorizado and restante <= 0:
+        # estado fresco de la fecha elegida (solo informativo: no impide lanzar la ejecucion)
+        aviso = ""
+        try:
+            consultar_nomads.clear()
+            est = consultar_nomads((fecha_sel,), cfg_uv["ciclo"], cfg_uv["esperados"])[fecha_sel]
+            if not est["completa"]:
+                aviso = (f"NOMADS aún no tiene {iso(fecha_sel)} completa ({texto_estado(est, total)}); "
+                         "la ejecución puede fallar.")
+        except Exception:
+            pass
         codigo, datos = gh("GET", ruta_runs, token)
         if codigo != 200:
             st.error(explicar_error(codigo, datos))
@@ -586,13 +696,14 @@ with tab_dl:
                        "(usa «Actualizar estado»).")
             st.session_state["dl_runs"] = datos.get("workflow_runs", [])
         else:
-            cuerpo = {"ref": rama}
-            if fecha_sel:
-                cuerpo["inputs"] = {"fecha": fecha_sel}
-            codigo, datos = gh("POST", f"/repos/{repo}/actions/workflows/{workflow}/dispatches", token, cuerpo)
+            codigo, datos = gh("POST", f"/repos/{repo}/actions/workflows/{workflow}/dispatches", token,
+                               {"ref": rama, "inputs": {"fecha": fecha_sel}})
             if codigo == 204:
                 st.session_state["dl_ultimo"] = time.time()
-                st.success("Solicitud enviada a GitHub. La ejecución aparece en unos segundos.")
+                st.success(f"Solicitud enviada a GitHub para la fecha **{iso(fecha_sel)}**. "
+                           "La ejecución aparece en unos segundos.")
+                if aviso:
+                    st.warning(aviso)
                 with st.spinner("Consultando la ejecución..."):
                     time.sleep(4)
                     codigo, datos = gh("GET", ruta_runs, token)

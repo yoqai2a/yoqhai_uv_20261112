@@ -1,0 +1,4 @@
+# Dependencias del visor (_Visor/Visor_UV.py), p. ej. para Streamlit Community Cloud.
+# El procesamiento (numpy, pygrib, openpyxl) se instala dentro del workflow Cron_UV.yml.
+streamlit
+pandas

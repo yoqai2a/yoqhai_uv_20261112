@@ -88,50 +88,65 @@ def vecinos_1d(eje, x):
     """Indices (i, j) y peso w para interpolar x entre eje[i] y eje[j]."""
     i = int(np.argmin(np.abs(eje - x)))
     if abs(eje[i] - x) > 1.5 * abs(eje[1] - eje[0]):
-        sys.exit(f"El valor {x} esta fuera de la grilla.")
+        raise ValueError(f"el valor {x} esta fuera de la grilla")
     j = i + 1 if i + 1 < len(eje) and (eje[i] - x) * (eje[i + 1] - x) <= 0 else i - 1
     if j < 0 or j >= len(eje) or eje[j] == eje[i]:
         return i, i, 0.0
     return i, j, float((x - eje[i]) / (eje[j] - eje[i]))
 
 
-def preparar(e, lats, lons):
-    """Devuelve (spec, lat_pts, lon_pts, descripcion).
+def preparar(e, puntos, lats, lons):
+    """Devuelve (spec, lat_pts, lon_pts, nombres, descripcion).
 
     spec es un diccionario simple (se puede enviar a otros procesos) que `aplicar`
     usa para sacar los puntos pedidos de cada grilla 2D.
-    modo "punto": un solo punto (interpolacion bilineal o vecino mas cercano).
-    modo "zona" : todos los puntos de la grilla dentro de la caja lat/lon.
+    modo "puntos": varios lugares nombrados (tabla [puntos]), en el orden de la configuracion.
+    modo "punto" : un solo lugar (compatibilidad).
+    modo "zona"  : todos los puntos de la grilla dentro de la caja lat/lon.
+    Los lugares se calculan por interpolacion bilineal o vecino mas cercano.
     """
-    if e.get("modo", "zona") == "punto":
-        lat0, lon0 = e["punto_lat"], e["punto_lon"]
-        i, i2, wi = vecinos_1d(lats[:, 0], lat0)
-        j, j2, wj = vecinos_1d(lons[0, :], lon0)
+    modo = e.get("modo", "zona")
+    if modo == "punto":
+        puntos = {e.get("punto_nombre", ""): {"lat": e["punto_lat"], "lon": e["punto_lon"]}}
+        modo = "puntos"
+    if modo == "puntos":
+        if not puntos:
+            sys.exit("Falta la tabla [puntos] en la configuracion.")
+        nombres = list(puntos)
+        lat_pts = np.array([float(puntos[n]["lat"]) for n in nombres])
+        lon_pts = np.array([float(puntos[n]["lon"]) for n in nombres])
+        nodos = []
+        for n, la, lo in zip(nombres, lat_pts, lon_pts):
+            try:
+                nodos.append((*vecinos_1d(lats[:, 0], la), *vecinos_1d(lons[0, :], lo)))
+            except ValueError as err:
+                sys.exit(f"Punto {n}: {err}")
+        I, I2, WI, J, J2, WJ = (np.array(c) for c in zip(*nodos))
+        I, I2, J, J2 = (a.astype(int) for a in (I, I2, J, J2))
         if e.get("metodo", "bilineal") == "vecino":
-            ii, jj = (i2 if wi > 0.5 else i), (j2 if wj > 0.5 else j)
-            desc = f"vecino mas cercano: lat {lats[ii, jj]:.2f}, lon {lons[ii, jj]:.2f}"
-            spec = {"tipo": "indices", "flat": np.array([ii * lats.shape[1] + jj])}
-            return spec, np.array([lat0]), np.array([lon0]), desc
-        desc = (f"bilineal entre lat {lats[i, 0]:.2f}/{lats[i2, 0]:.2f} "
-                f"y lon {lons[0, j]:.2f}/{lons[0, j2]:.2f}")
-        spec = {"tipo": "bilineal", "nodos": (i, j, i2, j2), "pesos": (wi, wj)}
-        return spec, np.array([lat0]), np.array([lon0]), desc
+            ii, jj = np.where(WI > 0.5, I2, I), np.where(WJ > 0.5, J2, J)
+            spec = {"tipo": "indices", "flat": ii * lats.shape[1] + jj}
+            desc = f"vecino mas cercano, {len(nombres)} punto(s): {', '.join(nombres)}"
+        else:
+            spec = {"tipo": "bilineal", "I": I, "J": J, "I2": I2, "J2": J2, "WI": WI, "WJ": WJ}
+            desc = f"bilineal, {len(nombres)} punto(s): {', '.join(nombres)}"
+        return spec, lat_pts, lon_pts, nombres, desc
 
     mask = ((lats >= e["lat_min"]) & (lats <= e["lat_max"]) &
             (lons >= e["lon_min"]) & (lons <= e["lon_max"]))
     if not mask.any():
         sys.exit("La zona configurada no contiene puntos de la grilla.")
     spec = {"tipo": "indices", "flat": np.flatnonzero(mask)}
-    return spec, lats[mask], lons[mask], f"zona con {int(mask.sum())} puntos"
+    n = int(mask.sum())
+    return spec, lats[mask], lons[mask], [""] * n, f"zona con {n} puntos"
 
 
 def aplicar(spec, v):
     """Saca de la grilla 2D `v` los valores de los puntos definidos en `spec`."""
     if spec["tipo"] == "bilineal":
-        i, j, i2, j2 = spec["nodos"]
-        wi, wj = spec["pesos"]
-        return np.array([(1 - wi) * (1 - wj) * v[i, j] + (1 - wi) * wj * v[i, j2] +
-                         wi * (1 - wj) * v[i2, j] + wi * wj * v[i2, j2]])
+        I, J, I2, J2, WI, WJ = (spec[k] for k in ("I", "J", "I2", "J2", "WI", "WJ"))
+        return ((1 - WI) * (1 - WJ) * v[I, J] + (1 - WI) * WJ * v[I, J2] +
+                WI * (1 - WJ) * v[I2, J] + WI * WJ * v[I2, J2])
     return v.ravel()[spec["flat"]]
 
 
@@ -185,7 +200,7 @@ def calcular_max_dia(horas, inicio, tz, agrupar, uv, uvucs, factor, umbral):
     return registros
 
 
-def escribir_max_dia(ruta_csv, ruta_json, sep, fecha, nombre, registros, lat_pts, lon_pts):
+def escribir_max_dia(ruta_csv, ruta_json, sep, fecha, nombres, registros, lat_pts, lon_pts):
     """Escribe el CSV de maximos por dia (sin columna ciclo) y el mismo contenido
     como diccionario anidado en JSON."""
     with open(ruta_csv, "w", newline="", encoding="utf-8") as f:
@@ -198,7 +213,7 @@ def escribir_max_dia(ruta_csv, ruta_json, sep, fecha, nombre, registros, lat_pts
             j = r["j"]
             w.writerow([fecha, r["dia"], "maximo_" + r["tipo"],
                         r["local"].strftime("%Y-%m-%d"), r["local"].strftime("%H:%M"),
-                        r["utc"].strftime("%Y-%m-%d %H:%M"), r["hora_pron"], nombre,
+                        r["utc"].strftime("%Y-%m-%d %H:%M"), r["hora_pron"], nombres[j],
                         fmt(lat_pts[j], 2), fmt(lon_pts[j], 2), fmt(r["uv"], 4),
                         fmt(r["uvucs"], 4), fmt(r["uvi_desp"], 1), fmt(r["uvi_nub"], 1),
                         fmt(r["trans"], 3), r["n_horas"]])
@@ -207,9 +222,9 @@ def escribir_max_dia(ruta_csv, ruta_json, sep, fecha, nombre, registros, lat_pts
     puntos = {}
     for r in registros:
         j = r["j"]
-        clave = f"{nombre or 'punto'} ({lat_pts[j]:.2f}, {lon_pts[j]:.2f})"
+        clave = f"{nombres[j] or 'punto'} ({lat_pts[j]:.2f}, {lon_pts[j]:.2f})"
         p = puntos.setdefault(clave, {
-            "punto": nombre, "latitud": num(lat_pts[j], 2), "longitud": num(lon_pts[j], 2),
+            "punto": nombres[j], "latitud": num(lat_pts[j], 2), "longitud": num(lon_pts[j], 2),
             "max_con_nubosidad": {}, "max_cielo_despejado": {}})
         base = {"fecha_local": r["local"].strftime("%Y-%m-%d"),
                 "hora_local": r["local"].strftime("%H:%M"),
@@ -264,7 +279,7 @@ def main():
     factor = e.get("factor_uvi", 40.0)             # valor GRIB -> indice UV
     salida = carpeta / c.get("archivo", "UV_{FECHA}.csv").replace("{FECHA}", fecha)
     sep = c.get("separador", ",")
-    nombre = e.get("punto_nombre", "") if e.get("modo", "zona") == "punto" else ""
+    puntos_cfg = {k: v for k, v in cfg.get("puntos", {}).items() if isinstance(v, dict)}
 
     inicio = datetime.strptime(fecha + ciclo[1:3], "%Y%m%d%H")  # corrida, UTC
     horas = list(range(h0, h1 + 1))
@@ -273,7 +288,7 @@ def main():
     t0 = time.perf_counter()
     rutas = [(prod, h, carpeta / f"{prod}.{ciclo}.grbf{h:02d}.grib2")
              for h in horas for prod in ("uv", "uvucs")]
-    spec = lat_pts = lon_pts = forma = uv = uvucs = None
+    spec = lat_pts = lon_pts = nombres = forma = uv = uvucs = None
     pendientes = []
     for prod, h, ruta in rutas:
         if spec is None:
@@ -282,7 +297,7 @@ def main():
                 continue
             vals, lats, lons = r
             forma = vals.shape
-            spec, lat_pts, lon_pts, desc = preparar(e, lats, lons)
+            spec, lat_pts, lon_pts, nombres, desc = preparar(e, puntos_cfg, lats, lons)
             uv = np.full((len(horas), len(lat_pts)), np.nan)
             uvucs = np.full((len(horas), len(lat_pts)), np.nan)
             (uv if prod == "uv" else uvucs)[h - h0, :] = aplicar(spec, vals)
@@ -336,7 +351,7 @@ def main():
                 if solo_sol and (np.nan_to_num(a) <= 0 and np.nan_to_num(b) <= 0):
                     continue
                 trans = a / b if (not np.isnan(a) and not np.isnan(b) and b * factor > umbral) else np.nan
-                w.writerow([fecha, ciclo, h, dia, valida, nombre,
+                w.writerow([fecha, ciclo, h, dia, valida, nombres[j],
                             fmt(lat_pts[j], 2), fmt(lon_pts[j], 2),
                             fmt(a, 4), fmt(b, 4), fmt(a_uvi(b, factor), 1), fmt(a_uvi(a, factor), 1),
                             fmt(trans, 3), fmt(a_uvi(max_uvucs[i, j], factor), 1)])
@@ -348,7 +363,23 @@ def main():
     salida_json = carpeta / reemplazar(c.get("archivo_max_dia_json", "UV_{FECHA}_max_dia.json"))
     registros = calcular_max_dia(horas, inicio, c.get("zona_horaria", "America/Punta_Arenas"),
                                  c.get("agrupar_por", "bloque_24h"), uv, uvucs, factor, umbral)
-    escribir_max_dia(salida_max, salida_json, sep, fecha, nombre, registros, lat_pts, lon_pts)
+    escribir_max_dia(salida_max, salida_json, sep, fecha, nombres, registros, lat_pts, lon_pts)
+
+    # Archivo maestro historico (Excel): un fallo aqui no debe invalidar los CSV ya generados
+    hist = cfg.get("historico", {})
+    if hist.get("activo", True) and any(nombres):
+        try:
+            from _Historico_UV import actualizar_historico, datos_historico
+            ruta_h = (Path(ruta_cfg).resolve().parent / hist.get("archivo", "../___Data/___UV/Historico_UV.xlsx")).resolve()
+            resumen = actualizar_historico(
+                ruta_h, datetime.strptime(fecha, "%Y%m%d").date(),
+                datos_historico(registros, nombres),
+                datetime.strptime(hist.get("desde", "2026-01-01"), "%Y-%m-%d").date(),
+                datetime.strptime(hist.get("hasta", "2027-12-31"), "%Y-%m-%d").date())
+            print(f"Historico: {ruta_h} -> {resumen}")
+        except Exception as exc:
+            print(f"AVISO: no se pudo actualizar el historico ({type(exc).__name__}: {exc})")
+            print(f"::warning::UV {fecha}: no se actualizo Historico_UV.xlsx ({type(exc).__name__}: {exc})")
 
 
 if __name__ == "__main__":
