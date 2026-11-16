@@ -1,4 +1,6 @@
 # Dependencias del visor (_Visor/Visor_UV.py), p. ej. para Streamlit Community Cloud.
+# openpyxl: para leer el archivo maestro Historico_UV.xlsx (pestana "Historico").
 # El procesamiento (numpy, pygrib, openpyxl) se instala dentro del workflow Cron_UV.yml.
 streamlit
 pandas
+openpyxl

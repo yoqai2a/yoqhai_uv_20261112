@@ -4,7 +4,9 @@
 Ejecutar (desde cualquier carpeta):
     streamlit run Y0Qa1/_0_UV_index/Visor_UV.py
 
-Requiere: pip install streamlit pandas   (altair viene con streamlit)
+Requiere: pip install streamlit pandas openpyxl   (altair viene con streamlit)
+
+Pestana "Historico": lee Y0Qa1/___Data/___UV/Historico_UV.xlsx (todas las corridas acumuladas).
 
 Lee, desde Y0Qa1/___Data/___UV/___UV_YYYYMMDD/:
     UV_YYYYMMDD.csv            serie horaria (120 horas de pronostico)
@@ -315,6 +317,36 @@ def tabla_ejecuciones(runs, zona_txt):
     return pd.DataFrame(filas)
 
 
+# ----------------------------------------------------------------------------- historico (Excel)
+NOMBRE_HISTORICO = "Historico_UV.xlsx"
+HOJA_LEYENDA = "Leyenda"
+DIAS_H = 6                                        # dia 0 .. dia 5
+COLUMNAS_H = (["ciclo"] + [f"desp{i}" for i in range(DIAS_H)] + ["_sep", "_ciclo2"]
+              + [f"nub{i}" for i in range(DIAS_H)])   # A | B..G | H | I | J..O
+
+
+@st.cache_data(show_spinner="Leyendo el histórico...")
+def leer_historico(ruta, mtime):
+    """{estacion: DataFrame(ciclo, desp0..desp5, nub0..nub5)} solo con las filas que tienen datos.
+    mtime solo sirve para invalidar la cache cuando el archivo cambia."""
+    res = {}
+    with pd.ExcelFile(ruta, engine="openpyxl") as xl:
+        nombres = [n for n in xl.sheet_names if n != HOJA_LEYENDA]     # la leyenda no es una estacion
+        hojas = {n: xl.parse(n, header=None, skiprows=1, usecols="A:O") for n in nombres}
+    for nombre, df in hojas.items():
+        if df.shape[1] < len(COLUMNAS_H):
+            continue
+        df = df.iloc[:, :len(COLUMNAS_H)].copy()
+        df.columns = COLUMNAS_H
+        df = df.drop(columns=["_sep", "_ciclo2"])
+        df["ciclo"] = pd.to_datetime(df["ciclo"], errors="coerce")
+        for c in df.columns[1:]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+        df = df.dropna(subset=["ciclo"])
+        res[nombre] = df[df.iloc[:, 1:].notna().any(axis=1)].reset_index(drop=True)
+    return res
+
+
 # ----------------------------------------------------------------------------- datos
 def listar_fechas(raiz):
     fechas = []
@@ -438,8 +470,8 @@ st.title("Índice UV – pronóstico NOAA/NCEP")
 st.caption(f"Corrida **{fecha[:4]}-{fecha[4:6]}-{fecha[6:]} {ciclo}** · **{sel}** · "
            f"{len(h)} horas de pronóstico · {etiqueta_hora}")
 
-tab_max, tab_serie, tab_comp, tab_dl = st.tabs(
-    ["📈 Máximos por día", "🕐 Serie horaria", "🔀 Comparación", NOMBRE_TAB_DL])
+tab_max, tab_serie, tab_comp, tab_hist, tab_dl = st.tabs(
+    ["📈 Máximos por día", "🕐 Serie horaria", "🔀 Comparación", "📚 Histórico", NOMBRE_TAB_DL])
 
 # ----------------------------------------------------------------------------- maximos
 with tab_max:
@@ -601,6 +633,102 @@ with tab_comp:
             mostrar_tabla(sty.format("{:.1f}", subset=cols, na_rep="—"))
         st.caption("Colores según la categoría del índice UV (verde bajo, amarillo moderado, "
                    "naranja alto, rojo muy alto, violeta extremo).")
+
+# ----------------------------------------------------------------------------- historico
+with tab_hist:
+    ruta_h = raiz / NOMBRE_HISTORICO
+    hoja = p["punto"]                                      # el nombre de la estacion es el de su hoja
+    dfh, hist = None, {}
+    if not ruta_h.exists():
+        st.info(f"Todavía no existe {NOMBRE_HISTORICO} en {raiz}. Se crea al ejecutar el flujo "
+                f"(pestaña «{NOMBRE_TAB_DL}» o Y0Qa1.py).")
+    else:
+        try:
+            hist = leer_historico(str(ruta_h), ruta_h.stat().st_mtime)
+        except Exception as e:
+            st.error(f"No se pudo leer el histórico: {type(e).__name__}: {e}")
+        dfh = hist.get(hoja)
+        if hist and dfh is None:
+            st.info(f"El histórico no tiene una hoja para «{hoja or 'este punto'}». "
+                    f"Hojas disponibles: {', '.join(hist) or '—'}.")
+        elif dfh is not None and dfh.empty:
+            st.info(f"La hoja {hoja} todavía no tiene datos.")
+            dfh = None
+
+    if dfh is not None:
+        st.caption(f"Archivo maestro **{NOMBRE_HISTORICO}** · estación **{hoja}** · toda la información acumulada "
+                   "(el máximo diario del índice UV de cada corrida, de los días 0 a 5).")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Corridas registradas", len(dfh))
+        m2.metric("Primera corrida", dfh["ciclo"].min().date().isoformat())
+        m3.metric("Última corrida", dfh["ciclo"].max().date().isoformat())
+
+        # --- series visibles (siempre queda al menos una encendida)
+        st.session_state.setdefault("hist_ver_desp", True)
+        st.session_state.setdefault("hist_ver_nub", True)
+        st.caption("Series visibles (siempre queda al menos una encendida)")
+        hb1, hb2, _ = st.columns([1, 1, 2])
+        boton(hb1, "☀️ Cielo despejado", key="btn_hist_desp",
+              type="primary" if st.session_state["hist_ver_desp"] else "secondary",
+              on_click=alternar_serie, args=("hist_ver_desp", "hist_ver_nub"))
+        boton(hb2, "☁️ Con nubosidad", key="btn_hist_nub",
+              type="primary" if st.session_state["hist_ver_nub"] else "secondary",
+              on_click=alternar_serie, args=("hist_ver_nub", "hist_ver_desp"))
+        series_h = [nm for nm, k in (("Cielo despejado", "hist_ver_desp"), ("Con nubosidad", "hist_ver_nub"))
+                    if st.session_state[k]]
+
+        dias_disp = [k for k in range(DIAS_H) if dfh[f"desp{k}"].notna().any() or dfh[f"nub{k}"].notna().any()]
+        hc1, hc2 = st.columns(2)
+        kd = hc1.radio("Pronóstico para el día", dias_disp, horizontal=True, key="hist_dia",
+                       format_func=lambda k: f"día {k}",
+                       help="Día 0 = el mismo día de la corrida; día 1 = el siguiente; etc.")
+        rango = hc2.radio("Mostrar", ["Últimos 30", "Últimos 90", "Todo"], index=2, horizontal=True, key="hist_rango")
+
+        d = (dfh[["ciclo", f"desp{kd}", f"nub{kd}"]]
+             .rename(columns={f"desp{kd}": "Cielo despejado", f"nub{kd}": "Con nubosidad"}).sort_values("ciclo"))
+        if rango != "Todo":
+            d = d.tail(int(rango.split()[1]))
+        d["fecha"] = d["ciclo"] + pd.to_timedelta(kd, unit="D")      # fecha a la que se refiere el pronostico
+        largo = (d.melt(id_vars=["fecha", "ciclo"], value_vars=["Cielo despejado", "Con nubosidad"],
+                        var_name="serie", value_name="uvi"))
+        largo = largo[largo["serie"].isin(series_h)].dropna(subset=["uvi"])
+        if largo.empty:
+            st.info("No hay datos para la selección.")
+        else:
+            ymax = max(12, float(largo["uvi"].max()) + 1)
+            lineas = (alt.Chart(largo).mark_line(point=True)
+                      .encode(x=alt.X("fecha:T", title="Fecha pronosticada",
+                                      axis=alt.Axis(format="%d-%b-%Y", labelAngle=-30)),
+                              y=alt.Y("uvi:Q", title="Índice UV máximo", scale=alt.Scale(domain=[0, ymax]),
+                                      axis=eje_uvi(ymax)),
+                              color=alt.Color("serie:N", title=None,
+                                              scale=alt.Scale(domain=list(COLOR_LINEA), range=list(COLOR_LINEA.values()))),
+                              tooltip=[alt.Tooltip("fecha:T", title="Fecha pronosticada", format="%Y-%m-%d"),
+                                       alt.Tooltip("ciclo:T", title="Corrida", format="%Y-%m-%d"),
+                                       "serie:N", alt.Tooltip("uvi:Q", format=".1f")])
+                      .properties(height=420))
+            mostrar_grafico(alt.layer(bandas(ymax, eje_uvi(ymax)).properties(height=420), lineas)
+                            .resolve_scale(color="independent"))
+            st.caption("Cada punto es el máximo del día pronosticado por una corrida. Los colores de fondo "
+                       "son las categorías de la OMS.")
+
+        # --- tabla completa (como en el Excel) y descargas
+        st.subheader("Tabla completa")
+        tabla_h = dfh.sort_values("ciclo", ascending=False).copy()
+        tabla_h.insert(0, "Fecha ciclo", tabla_h.pop("ciclo").dt.strftime("%Y-%m-%d"))
+        nombres_col = {f"desp{i}": f"Despejado día {i}" for i in range(DIAS_H)}
+        nombres_col.update({f"nub{i}": f"Nubosidad día {i}" for i in range(DIAS_H)})
+        tabla_h = tabla_h.rename(columns=nombres_col)
+        cols_v = [c for c in tabla_h.columns if c != "Fecha ciclo"]
+        sty = tabla_h.style
+        sty = (getattr(sty, "map", None) or sty.applymap)(pintar, subset=cols_v)
+        mostrar_tabla(sty.format("{:.1f}", subset=cols_v, na_rep="—"))
+        dl1, dl2, _ = st.columns([1, 1, 2])
+        dl1.download_button(f"⬇ CSV de {hoja}", tabla_h.to_csv(index=False).encode("utf-8"),
+                            file_name=f"Historico_UV_{hoja}.csv", mime="text/csv", key="dl_hist_csv")
+        dl2.download_button("⬇ Excel completo", ruta_h.read_bytes(), file_name=NOMBRE_HISTORICO,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            key="dl_hist_xlsx")
 
 # ----------------------------------------------------------------------------- ejecutor manual (GitHub)
 with tab_dl:
