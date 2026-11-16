@@ -15,10 +15,11 @@ hora_inicio = 1                   # grbf01
 hora_fin = 120                    # grbf120
 url_base = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/uvi/prod"
 destino = "../___Data/___UV/___UV_{FECHA}"   # relativo a ESTA carpeta; {FECHA} = fecha
-reintentos = 3
-espera = 5                        # segundos entre reintentos
+reintentos = 10                   # veces que se reintenta cada archivo que falla o llega corrupto
+espera = 10                       # base (s): espera antes del reintento k = espera*k + la espera anterior
+espera_max = 60                   # tope (s) de cada espera: 10, 30, 60, 60, 60, ... (~9 min si nada se recupera)
+                                  # 0 = sin tope (10, 30, 60, 100, 150, ... 550 s: ~37 min)
 hilos = 16
-rondas_extra = 3                 # rondas adicionales solo con los archivos que fallaron
 
 [extraccion]
 modo = "puntos"                   # "puntos" = varios lugares (tabla [puntos]) | "punto" = uno solo | "zona" = caja lat/lon
@@ -57,6 +58,11 @@ activo = true
 archivo = "../___Data/___UV/Historico_UV.xlsx"   # relativo a ESTA carpeta
 desde = "2026-01-01"                             # primera fila del calendario
 hasta = "2027-12-31"                             # ultima fila (si llega una fecha posterior, se extiende solo)
+
+[limpieza]
+# Las carpetas diarias (___Data/___UV/___UV_YYYYMMDD: GRIB, CSV y JSON) se conservan solo este numero de dias.
+# El archivo maestro Historico_UV.xlsx NUNCA se borra. 0 = no borrar nada.
+dias_a_conservar = 15
 
 [csv]
 archivo = "UV_{FECHA}.csv"        # se guarda dentro de la carpeta de destino

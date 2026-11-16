@@ -9,6 +9,7 @@ Uso:
 Pasos:
     1) Descargar_UV.py     -> descarga los archivos (termina con error si falta alguno)
     2) Generar_CSV_UV.py   -> solo se ejecuta si el paso 1 termino sin errores
+    3) Limpiar_UV.py       -> borra las carpetas diarias de mas de 15 dias (solo si todo salio bien)
 
 La fecha se resuelve una sola vez aqui y se entrega a ambos pasos, para que usen
 exactamente la misma aunque la ejecucion cruce la hora de cambio (18:30 UTC).
@@ -20,7 +21,7 @@ from pathlib import Path
 
 from _Descargar_UV import CONFIG_POR_DEFECTO, fecha_desde_config, leer_config
 
-PASOS = ("_Descargar_UV.py", "_Generar_CSV_UV.py")
+PASOS = ("_Descargar_UV.py", "_Generar_CSV_UV.py", "_Limpiar_UV.py")
 
 
 def main():

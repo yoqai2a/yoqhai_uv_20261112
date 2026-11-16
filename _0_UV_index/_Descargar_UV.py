@@ -10,9 +10,12 @@ Uso:
 Con fecha = "AUTO": antes de `hora_cambio_utc` (18:30 UTC) se usa la fecha de ayer;
 desde esa hora, la de hoy.
 
+Reintentos: cada archivo que falla o llega corrupto se vuelve a pedir hasta `reintentos` veces
+(10 por defecto), esperando antes de cada reintento base*k + la espera anterior, con base = `espera`
+(10 s) y sin pasar de `espera_max` (60 s): 10, 30, 60, 60, 60, 60, 60, 60, 60 y 60 s (~9 min en total).
+
 Solo usa la libreria estandar de Python 3.11+ (tomllib).
 """
-import random
 import sys
 import time
 import tomllib
@@ -48,53 +51,71 @@ def resolver_fecha(valor, hora_cambio="18:30", ahora=None):
     return valor
 
 
-ERRORES_REINTENTABLES = {403, 408, 429, 500, 502, 503, 504}
+def grib_valido(ruta):
+    """Un GRIB completo empieza con 'GRIB' y termina con '7777'. Detecta archivos cortados o danados."""
+    try:
+        with open(ruta, "rb") as f:
+            if f.read(4) != b"GRIB":
+                return False
+            f.seek(-4, 2)
+            return f.read(4) == b"7777"
+    except OSError:
+        return False
 
 
-def descargar(url, destino, reintentos, espera):
-    """Descarga con reintentos, espera exponencial y validacion de tamano."""
-    if destino.exists() and destino.stat().st_size > 0:
-        return destino.name, "existente"
+def esperas_reintento(reintentos, base, tope=None):
+    """Espera (segundos) antes de cada reintento: la de `k` es base*k mas la espera anterior,
+    sin pasar de `tope` (si se indica). Con base 10, tope 60 y 10 reintentos:
+    10, 30, 60, 60, 60, 60, 60, 60, 60, 60 s."""
+    esperas, anterior = [], 0
+    for k in range(1, reintentos + 1):
+        anterior = base * k + anterior
+        if tope:
+            anterior = min(anterior, tope)
+        esperas.append(anterior)
+    return esperas
+
+
+def descargar(url, destino):
+    """UN intento de descarga. Valida el tamano y que sea un GRIB completo.
+    Devuelve (nombre, estado) con estado 'ok', 'existente' o 'error: ...'."""
+    if destino.exists():
+        if destino.stat().st_size > 0 and grib_valido(destino):
+            return destino.name, "existente"
+        destino.unlink()                      # vacio, cortado o corrupto: se vuelve a bajar
     tmp = destino.with_suffix(destino.suffix + ".part")
-    err = ""
-    for intento in range(1, reintentos + 1):
-        try:
-            with urllib.request.urlopen(url, timeout=60) as r:
-                esperado = r.headers.get("Content-Length")
-                with open(tmp, "wb") as f:
-                    while chunk := r.read(1 << 16):
-                        f.write(chunk)
-            recibido = tmp.stat().st_size
-            if recibido == 0 or (esperado and recibido != int(esperado)):
-                raise IOError(f"descarga incompleta ({recibido} de {esperado} bytes)")
-            tmp.replace(destino)
-            return destino.name, "ok"
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                return destino.name, "no disponible (404)"
-            err = f"HTTP {e.code}"
-            if e.code not in ERRORES_REINTENTABLES:
-                break
-        except Exception as e:  # red, timeout, descarga cortada, etc.
-            err = f"{type(e).__name__}: {e}"
-        finally:
-            if tmp.exists():
-                tmp.unlink()
-        if intento < reintentos:
-            time.sleep(espera * 2 ** (intento - 1) + random.uniform(0, 1))
-    return destino.name, f"error: {err}"
+    try:
+        with urllib.request.urlopen(url, timeout=60) as r:
+            esperado = r.headers.get("Content-Length")
+            with open(tmp, "wb") as f:
+                while chunk := r.read(1 << 16):
+                    f.write(chunk)
+        recibido = tmp.stat().st_size
+        if recibido == 0 or (esperado and recibido != int(esperado)):
+            raise IOError(f"descarga incompleta ({recibido} de {esperado} bytes)")
+        if not grib_valido(tmp):
+            raise IOError("archivo corrupto (no es un GRIB completo)")
+        tmp.replace(destino)
+        return destino.name, "ok"
+    except urllib.error.HTTPError as e:
+        return destino.name, f"error: HTTP {e.code}"
+    except Exception as e:  # red, timeout, descarga cortada, archivo corrupto...
+        return destino.name, f"error: {type(e).__name__}: {e}"
+    finally:
+        if tmp.exists():
+            tmp.unlink()
 
 
-def ronda(tareas, hilos, reintentos, espera):
-    """Ejecuta una ronda de descargas; devuelve (resultados, tareas con error)."""
+def ronda(tareas, hilos):
+    """Ejecuta una ronda de descargas; devuelve (resumen, tareas con error)."""
     resultados, fallidas = {}, []
     with ThreadPoolExecutor(max_workers=hilos) as ex:
-        futs = {ex.submit(descargar, u, p, reintentos, espera): (u, p) for u, p in tareas}
+        futs = {ex.submit(descargar, u, p): (u, p) for u, p in tareas}
         for i, fut in enumerate(as_completed(futs), 1):
             nombre, estado = fut.result()
             clave = estado.split(" ")[0].rstrip(":")
             resultados[clave] = resultados.get(clave, 0) + 1
-            if estado.startswith(("error", "no disponible")):
+            if estado.startswith("error"):
                 fallidas.append(futs[fut])
             print(f"[{i}/{len(tareas)}] {nombre}: {estado}", flush=True)
     return resultados, fallidas
@@ -131,9 +152,9 @@ def main():
     h0, h1 = d.get("hora_inicio", 1), d.get("hora_fin", 120)
     base = d["url_base"].rstrip("/")
     carpeta = carpeta_destino(cfg, ruta_cfg, fecha)
-    reintentos, espera = d.get("reintentos", 3), d.get("espera", 5)
+    reintentos, espera = d.get("reintentos", 10), d.get("espera", 10)
+    espera_max = d.get("espera_max", 60)             # tope de cada espera (s); 0 = sin tope
     hilos = d.get("hilos", 4)
-    rondas_extra = d.get("rondas_extra", 3)
 
     carpeta.mkdir(parents=True, exist_ok=True)
     url_dir = f"{base}/uvi.{fecha}"
@@ -145,22 +166,22 @@ def main():
             nombre = f"{prod}.{ciclo}.grbf{h:02d}.grib2"  # 01..99, luego 100..120
             tareas.append((f"{url_dir}/{nombre}", carpeta / nombre))
 
-    resumen, fallidas = ronda(tareas, hilos, reintentos, espera)
+    resumen, fallidas = ronda(tareas, hilos)
     print("Resumen:", resumen)
 
-    # Rondas extra: solo los archivos que fallaron, con menos hilos y mas pausa
-    for n in range(1, rondas_extra + 1):
+    # Reintentos: solo los archivos que fallaron (o llegaron corruptos), con espera creciente
+    esperas = esperas_reintento(reintentos, espera, espera_max or None)
+    for k, pausa in enumerate(esperas, 1):
         if not fallidas:
             break
-        pausa = 30 * n
-        print(f"\nRonda extra {n}/{rondas_extra}: {len(fallidas)} archivos con error. "
-              f"Esperando {pausa} s...", flush=True)
+        print(f"\nReintento {k}/{reintentos}: {len(fallidas)} archivo(s) con error. "
+              f"Esperando {pausa:g} s...", flush=True)
         time.sleep(pausa)
-        _, fallidas = ronda(fallidas, max(1, min(hilos, 4)), reintentos, espera)
+        _, fallidas = ronda(fallidas, max(1, min(hilos, 4)))
 
     faltan = [p.name for _, p in fallidas]
     if faltan:
-        print(f"\nERROR: quedaron {len(faltan)} archivos sin descargar: {faltan}")
+        print(f"\nERROR: tras {reintentos} reintentos quedaron {len(faltan)} archivos sin descargar: {faltan}")
         sys.exit(1)
     print("\nDescarga completa sin errores.")
 

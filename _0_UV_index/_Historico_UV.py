@@ -162,14 +162,25 @@ def actualizar_historico(ruta, fecha_ciclo, datos, desde, hasta):
     else:
         wb = Workbook()
         wb.remove(wb.active)
-    escritas = []
+    existia = ruta.exists()
+    escritas, cambio = [], not existia
     for nombre, valores in datos.items():
-        ws = wb[nombre] if nombre in wb.sheetnames else _crear_hoja(wb, nombre, desde, hasta)
+        if nombre not in wb.sheetnames:
+            _crear_hoja(wb, nombre, desde, hasta)
+            cambio = True
+        ws = wb[nombre]
         fila = _fila_de(ws, fecha_ciclo, desde)
         for i in range(DIAS):
-            ws.cell(fila, COL_DESP + 1 + i).value = valores["despejado"][i]
-            ws.cell(fila, COL_NUB + 1 + i).value = valores["nubosidad"][i]
+            for col, nuevo in ((COL_DESP + 1 + i, valores["despejado"][i]), (COL_NUB + 1 + i, valores["nubosidad"][i])):
+                celda = ws.cell(fila, col)
+                if celda.value != nuevo:
+                    celda.value = nuevo
+                    cambio = True
         escritas.append(nombre)
+    if not cambio:
+        # Los mismos valores que ya estaban: no se vuelve a guardar el archivo (asi no cambia su contenido
+        # y git no registra una version nueva del Excel cada vez que se repite una ejecucion)
+        return f"fila {fecha_ciclo.isoformat()} sin cambios ({len(escritas)} hoja(s))"
     _hoja_leyenda(wb)                          # la leyenda siempre queda como ultima hoja
     wb.save(ruta)
     return f"fila {fecha_ciclo.isoformat()} actualizada en {len(escritas)} hoja(s): {', '.join(escritas)}"
