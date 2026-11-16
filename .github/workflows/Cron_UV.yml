@@ -13,7 +13,7 @@ on:
         default: ""
 
 permissions:
-  contents: write   # necesario para guardar el CSV en el repositorio
+  contents: write   # necesario para guardar los datos en el repositorio
 
 concurrency:
   group: cron-uv            # evita dos ejecuciones simultaneas haciendo push
@@ -22,7 +22,7 @@ concurrency:
 jobs:
   uv:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45      # los reintentos de descarga suman como maximo ~9 min (espera_max = 60 s)
     steps:
       - uses: actions/checkout@v5
 
@@ -46,7 +46,7 @@ jobs:
           echo "Fecha a procesar: $FECHA"
           echo "FECHA=$FECHA" >> "$GITHUB_ENV"
 
-      - name: Ejecutar Y0Qa1 (descarga y luego genera CSV/JSON e historico)
+      - name: Ejecutar Y0Qa1 (descarga, genera CSV/JSON, actualiza el historico y limpia)
         run: python Y0Qa1.py "$FECHA"
 
       - name: Guardar CSV/JSON como artefacto
@@ -59,14 +59,15 @@ jobs:
             ___Data/___UV/Historico_UV.xlsx
           retention-days: 7
 
-      - name: Guardar CSV/JSON e historico en el repositorio (___Data/___UV/)
+      - name: Guardar CSV/JSON (ultimos 15 dias) e historico en el repositorio
         run: |
-          D="___Data/___UV/___UV_${FECHA}"
           H="___Data/___UV/Historico_UV.xlsx"
+          if [ ! -f "$H" ]; then echo "::error::No se genero $H"; exit 1; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$D/UV_${FECHA}.csv" "$D/UV_${FECHA}_max_dia.csv" "$D/UV_${FECHA}_max_dia.json"
-          if [ -f "$H" ]; then git add "$H"; fi
-          git diff --staged --quiet || git commit -m "UV ${FECHA}: CSV generado"
+          # -A incluye lo nuevo y las carpetas viejas que borro _Limpiar_UV.py; luego se sacan los GRIB2
+          git add -A -- ___Data/___UV
+          git reset -q -- '*.grib2' '*.grib2.part' || true
+          git diff --staged --quiet || git commit -m "UV ${FECHA}: datos e historico actualizados"
           git pull --rebase origin "${GITHUB_REF_NAME}" || true
           git push
