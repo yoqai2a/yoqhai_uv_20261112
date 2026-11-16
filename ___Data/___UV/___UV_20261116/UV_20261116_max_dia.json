@@ -1,0 +1,478 @@
+{
+  "20261116": {
+    "SCHR (-47.24, -72.59)": {
+      "punto": "SCHR",
+      "latitud": -47.24,
+      "longitud": -72.59,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_con_nubosidad": 8.1,
+          "uv_bruto": 0.203
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-17 16:00",
+          "uvi_con_nubosidad": 7.1,
+          "uv_bruto": 0.1775
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-18 16:00",
+          "uvi_con_nubosidad": 6.1,
+          "uv_bruto": 0.1521
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_con_nubosidad": 7.1,
+          "uv_bruto": 0.1784
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_con_nubosidad": 5.4,
+          "uv_bruto": 0.1349
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_despejado": 9.1,
+          "uvucs_bruto": 0.2272
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-17 17:00",
+          "uvi_despejado": 8.9,
+          "uvucs_bruto": 0.2221
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_despejado": 8.7,
+          "uvucs_bruto": 0.217
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_despejado": 8.4,
+          "uvucs_bruto": 0.2106
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_despejado": 8.4,
+          "uvucs_bruto": 0.2105
+        }
+      }
+    },
+    "SCNT (-51.72, -72.50)": {
+      "punto": "SCNT",
+      "latitud": -51.72,
+      "longitud": -72.5,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_con_nubosidad": 7.1,
+          "uv_bruto": 0.1779
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-17 17:00",
+          "uvi_con_nubosidad": 7.0,
+          "uv_bruto": 0.1749
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_con_nubosidad": 6.9,
+          "uv_bruto": 0.1713
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "16:00",
+          "hora_utc": "2026-11-19 19:00",
+          "uvi_con_nubosidad": 3.2,
+          "uv_bruto": 0.0794
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_con_nubosidad": 6.3,
+          "uv_bruto": 0.1585
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_despejado": 7.4,
+          "uvucs_bruto": 0.1858
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-17 17:00",
+          "uvi_despejado": 7.5,
+          "uvucs_bruto": 0.187
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_despejado": 7.5,
+          "uvucs_bruto": 0.1863
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_despejado": 7.5,
+          "uvucs_bruto": 0.1883
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_despejado": 7.2,
+          "uvucs_bruto": 0.1788
+        }
+      }
+    },
+    "SCCI (-53.00, -70.85)": {
+      "punto": "SCCI",
+      "latitud": -53.0,
+      "longitud": -70.85,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_con_nubosidad": 7.0,
+          "uv_bruto": 0.1742
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-17 16:00",
+          "uvi_con_nubosidad": 6.4,
+          "uv_bruto": 0.1611
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_con_nubosidad": 6.8,
+          "uv_bruto": 0.1705
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-19 16:00",
+          "uvi_con_nubosidad": 6.4,
+          "uv_bruto": 0.1595
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "15:00",
+          "hora_utc": "2026-11-20 18:00",
+          "uvi_con_nubosidad": 4.4,
+          "uv_bruto": 0.1106
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_despejado": 7.1,
+          "uvucs_bruto": 0.1764
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-17 17:00",
+          "uvi_despejado": 7.0,
+          "uvucs_bruto": 0.1749
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_despejado": 6.9,
+          "uvucs_bruto": 0.1729
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_despejado": 7.3,
+          "uvucs_bruto": 0.1818
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_despejado": 7.0,
+          "uvucs_bruto": 0.1744
+        }
+      }
+    },
+    "SCFM (-53.07, -70.08)": {
+      "punto": "SCFM",
+      "latitud": -53.07,
+      "longitud": -70.08,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_con_nubosidad": 7.0,
+          "uv_bruto": 0.176
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-17 16:00",
+          "uvi_con_nubosidad": 6.8,
+          "uv_bruto": 0.1692
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_con_nubosidad": 6.9,
+          "uv_bruto": 0.1716
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_con_nubosidad": 6.5,
+          "uv_bruto": 0.1625
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "16:00",
+          "hora_utc": "2026-11-20 19:00",
+          "uvi_con_nubosidad": 3.9,
+          "uv_bruto": 0.0969
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_despejado": 7.1,
+          "uvucs_bruto": 0.1781
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-17 17:00",
+          "uvi_despejado": 7.0,
+          "uvucs_bruto": 0.1749
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_despejado": 7.0,
+          "uvucs_bruto": 0.1746
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_despejado": 7.3,
+          "uvucs_bruto": 0.182
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_despejado": 7.1,
+          "uvucs_bruto": 0.1775
+        }
+      }
+    },
+    "SCGZ (-54.93, -67.64)": {
+      "punto": "SCGZ",
+      "latitud": -54.93,
+      "longitud": -67.64,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_con_nubosidad": 6.7,
+          "uv_bruto": 0.1675
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-17 17:00",
+          "uvi_con_nubosidad": 6.6,
+          "uv_bruto": 0.1638
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "15:00",
+          "hora_utc": "2026-11-18 18:00",
+          "uvi_con_nubosidad": 3.5,
+          "uv_bruto": 0.0882
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_con_nubosidad": 5.4,
+          "uv_bruto": 0.1357
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "12:00",
+          "hora_utc": "2026-11-20 15:00",
+          "uvi_con_nubosidad": 4.6,
+          "uv_bruto": 0.1157
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-16 17:00",
+          "uvi_despejado": 6.8,
+          "uvucs_bruto": 0.169
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-17 16:00",
+          "uvi_despejado": 6.7,
+          "uvucs_bruto": 0.1675
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-18 17:00",
+          "uvi_despejado": 6.6,
+          "uvucs_bruto": 0.1644
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-19 17:00",
+          "uvi_despejado": 6.9,
+          "uvucs_bruto": 0.1717
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_despejado": 6.7,
+          "uvucs_bruto": 0.1678
+        }
+      }
+    },
+    "SCRM (-62.17, -58.91)": {
+      "punto": "SCRM",
+      "latitud": -62.17,
+      "longitud": -58.91,
+      "max_con_nubosidad": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "12:00",
+          "hora_utc": "2026-11-16 15:00",
+          "uvi_con_nubosidad": 5.5,
+          "uv_bruto": 0.1387
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-17 16:00",
+          "uvi_con_nubosidad": 5.8,
+          "uv_bruto": 0.1454
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-18 16:00",
+          "uvi_con_nubosidad": 6.9,
+          "uv_bruto": 0.1735
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "17:00",
+          "hora_utc": "2026-11-19 20:00",
+          "uvi_con_nubosidad": 2.3,
+          "uv_bruto": 0.0583
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "14:00",
+          "hora_utc": "2026-11-20 17:00",
+          "uvi_con_nubosidad": 2.2,
+          "uv_bruto": 0.0551
+        }
+      },
+      "max_cielo_despejado": {
+        "dia1": {
+          "fecha_local": "2026-11-16",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-16 16:00",
+          "uvi_despejado": 7.1,
+          "uvucs_bruto": 0.1771
+        },
+        "dia2": {
+          "fecha_local": "2026-11-17",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-17 16:00",
+          "uvi_despejado": 7.2,
+          "uvucs_bruto": 0.1793
+        },
+        "dia3": {
+          "fecha_local": "2026-11-18",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-18 16:00",
+          "uvi_despejado": 7.0,
+          "uvucs_bruto": 0.1757
+        },
+        "dia4": {
+          "fecha_local": "2026-11-19",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-19 16:00",
+          "uvi_despejado": 7.0,
+          "uvucs_bruto": 0.1758
+        },
+        "dia5": {
+          "fecha_local": "2026-11-20",
+          "hora_local": "13:00",
+          "hora_utc": "2026-11-20 16:00",
+          "uvi_despejado": 7.2,
+          "uvucs_bruto": 0.1811
+        }
+      }
+    }
+  }
+}
